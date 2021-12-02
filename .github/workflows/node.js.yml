@@ -29,3 +29,21 @@ jobs:
     - run: npm ci
     - run: npm run build --if-present
     - run: npm test
+  deploy: ## <-- this is the new stuff
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: azure/docker-login@v1
+      with:
+        login-server: githubactionsazuredocker.azurecr.io
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+    - run: |
+        docker build . -t githubactionsazuredocker.azurecr.io/githubactionsazuredocker:${{ github.sha }}
+        docker push githubactionsazuredocker.azurecr.io/githubactionsazuredocker:${{ github.sha }}
+    - uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'githubactionsazuredocker'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        images: 'githubactionsazuredocker.azurecr.io/githubactionsazuredocker:${{ github.sha }}'
